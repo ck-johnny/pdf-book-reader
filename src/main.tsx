@@ -685,6 +685,8 @@ function Reader({ bookId, onBack }: { bookId: string; onBack: () => void }) {
   );
 }
 
+const DEFAULT_ASPECT_RATIO = 1.414;
+
 function PageCanvas({
   fitWidth,
   onRendered,
@@ -701,34 +703,66 @@ function PageCanvas({
   width: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [shouldRender, setShouldRender] = useState(false);
+
+  const availableWidth = Math.max(320, stageWidth - 28);
+  const targetWidth = fitWidth ? Math.min(availableWidth, width) : width;
+  const placeholderHeight = Math.floor(targetWidth * (aspectRatio ?? DEFAULT_ASPECT_RATIO));
 
   useEffect(() => {
-    let cancelled = false;
+    const node = containerRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldRender(true);
+        }
+      },
+      { rootMargin: "800px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldRender) return;
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
 
+    let cancelled = false;
+    let renderTask: ReturnType<pdfjsLib.PDFPageProxy["render"]> | null = null;
+
     async function renderPage() {
-      const pdfPage = await pdf.getPage(pageNumber);
-      if (cancelled) return;
+      try {
+        const pdfPage = await pdf.getPage(pageNumber);
+        if (cancelled) return;
 
-      const baseViewport = pdfPage.getViewport({ scale: 1 });
-      const availableWidth = Math.max(320, stageWidth - 28);
-      const targetWidth = fitWidth ? Math.min(availableWidth, width) : width;
-      const scale = targetWidth / baseViewport.width;
-      const viewport = pdfPage.getViewport({ scale });
-      const pixelRatio = window.devicePixelRatio || 1;
+        const baseViewport = pdfPage.getViewport({ scale: 1 });
+        if (!cancelled) {
+          setAspectRatio(baseViewport.height / baseViewport.width);
+        }
+        const scale = targetWidth / baseViewport.width;
+        const viewport = pdfPage.getViewport({ scale });
+        const pixelRatio = window.devicePixelRatio || 1;
 
-      canvas.width = Math.floor(viewport.width * pixelRatio);
-      canvas.height = Math.floor(viewport.height * pixelRatio);
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
-      canvas.style.height = `${Math.floor(viewport.height)}px`;
+        canvas.width = Math.floor(viewport.width * pixelRatio);
+        canvas.height = Math.floor(viewport.height * pixelRatio);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-      context.clearRect(0, 0, viewport.width, viewport.height);
-      await pdfPage.render({ canvasContext: context, viewport }).promise;
-      if (!cancelled) {
-        onRendered();
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        context.clearRect(0, 0, viewport.width, viewport.height);
+        renderTask = pdfPage.render({ canvasContext: context, viewport });
+        await renderTask.promise;
+        if (!cancelled) onRendered();
+      } catch (err) {
+        const name = (err as { name?: string } | null)?.name;
+        if (name !== "RenderingCancelledException") {
+          console.error(`Failed to render page ${pageNumber}`, err);
+        }
       }
     }
 
@@ -736,10 +770,15 @@ function PageCanvas({
 
     return () => {
       cancelled = true;
+      renderTask?.cancel();
     };
-  }, [fitWidth, onRendered, pageNumber, pdf, stageWidth, width]);
+  }, [shouldRender, onRendered, pageNumber, pdf, targetWidth]);
 
-  return <canvas ref={canvasRef} />;
+  return (
+    <div ref={containerRef} style={{ minHeight: `${placeholderHeight}px`, width: `${targetWidth}px` }}>
+      <canvas ref={canvasRef} />
+    </div>
+  );
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
