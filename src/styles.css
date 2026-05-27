@@ -1,0 +1,552 @@
+:root {
+  color: #172126;
+  background: #f6f7f4;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.appShell,
+.readerShell {
+  min-height: 100vh;
+}
+
+.appShell {
+  padding: 22px;
+}
+
+.topBar,
+.readerTopBar {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.brand,
+.readerTitle {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand h1,
+.readerTitle h1 {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  line-height: 1.1;
+  margin: 0;
+}
+
+.brand p,
+.readerTitle p {
+  color: #607077;
+  margin: 4px 0 0;
+}
+
+.readerTitle {
+  display: block;
+  flex: 1;
+}
+
+.readerTitle h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.importButton,
+.iconButton {
+  align-items: center;
+  background: #163b3f;
+  border: 0;
+  color: #fff;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.importButton {
+  border-radius: 8px;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.importButton input {
+  display: none;
+}
+
+.iconButton {
+  border-radius: 8px;
+  flex: 0 0 auto;
+  height: 42px;
+  width: 42px;
+}
+
+.iconButton.danger {
+  background: #fff;
+  border: 1px solid #e2d4ce;
+  color: #9b2f23;
+}
+
+.libraryTools {
+  margin: 24px 0;
+}
+
+.searchField {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  max-width: 520px;
+  padding: 0 14px;
+}
+
+.searchField input {
+  background: transparent;
+  border: 0;
+  height: 46px;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.bookGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.bookCard {
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  min-height: 162px;
+  padding: 14px;
+}
+
+.bookOpenArea {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.bookName {
+  display: -webkit-box;
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.25;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.bookPath {
+  color: #607077;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
+
+.bookProgress {
+  color: #163b3f;
+  font-weight: 700;
+}
+
+.bookMeta {
+  color: #607077;
+  margin-top: auto;
+}
+
+.emptyState,
+.readerLoading {
+  align-items: center;
+  color: #607077;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 50vh;
+  padding: 28px;
+  text-align: center;
+}
+
+.emptyState h2 {
+  color: #172126;
+  margin: 0;
+}
+
+.emptyState p {
+  max-width: 520px;
+}
+
+.modalBackdrop {
+  align-items: center;
+  background: rgb(23 33 38 / 42%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 18px;
+  position: fixed;
+  z-index: 30;
+}
+
+.modalPanel,
+.confirmPanel {
+  background: #fff;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  box-shadow: 0 22px 64px rgb(23 33 38 / 28%);
+  max-height: min(720px, calc(100vh - 36px));
+  overflow: auto;
+  padding: 16px;
+  width: min(520px, 100%);
+}
+
+.confirmPanel {
+  width: min(380px, 100%);
+}
+
+.modalHeader {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.modalHeader h2,
+.confirmPanel h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.confirmPanel p {
+  color: #425258;
+  overflow-wrap: anywhere;
+}
+
+.renameField {
+  color: #425258;
+  display: grid;
+  gap: 8px;
+}
+
+.renameField input {
+  border: 1px solid #ccd6d2;
+  border-radius: 8px;
+  color: #172126;
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 11px;
+  width: 100%;
+}
+
+.detailsList {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.detailsList div {
+  display: grid;
+  gap: 4px;
+}
+
+.detailsList dt {
+  color: #607077;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detailsList dd {
+  color: #172126;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.primaryButton {
+  background: #163b3f;
+  border: 0;
+  color: #fff;
+}
+
+.secondaryButton {
+  background: #f6f7f4;
+  border: 1px solid #d8dfdc;
+  color: #172126;
+}
+
+.dangerButton {
+  background: #9b2f23;
+  border: 0;
+  color: #fff;
+}
+
+.readerShell {
+  background: #dfe5df;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.pageInput,
+.widthControl,
+.toggleControl {
+  align-items: center;
+  color: #425258;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.pageInput input {
+  border: 1px solid #ccd6d2;
+  border-radius: 8px;
+  height: 40px;
+  padding: 0 8px;
+  width: 78px;
+}
+
+.widthControl {
+  min-width: 0;
+  width: 100%;
+}
+
+.widthControl input {
+  accent-color: #163b3f;
+  flex: 1;
+}
+
+.widthControl strong {
+  color: #172126;
+  min-width: 62px;
+}
+
+.toggleControl {
+  background: #f6f7f4;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.toggleControl input {
+  accent-color: #163b3f;
+}
+
+.readerStage {
+  display: flex;
+  justify-content: center;
+  height: 100vh;
+  overflow: auto;
+  padding: 18px 14px 92px;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+.pageStack {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.pdfPage {
+  display: flex;
+  justify-content: center;
+  min-height: 180px;
+  scroll-margin-top: 18px;
+  width: 100%;
+}
+
+.pdfPage canvas {
+  background: #fff;
+  box-shadow: 0 12px 34px rgb(23 33 38 / 18%);
+  display: block;
+  max-width: 100%;
+}
+
+.renderStatus {
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  left: 50%;
+  margin: 0;
+  padding: 10px 12px;
+  position: absolute;
+  top: 20px;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.floatingControls {
+  align-items: flex-end;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: fixed;
+  right: 18px;
+  width: min(420px, calc(100vw - 28px));
+  z-index: 10;
+}
+
+.floatingButton {
+  align-items: center;
+  background: #163b3f;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgb(23 33 38 / 28%);
+  color: #fff;
+  display: inline-flex;
+  gap: 9px;
+  height: 54px;
+  justify-content: center;
+  min-width: 94px;
+  padding: 0 18px;
+}
+
+.floatingButton span {
+  font-weight: 800;
+}
+
+.floatingPanel {
+  background: rgb(255 255 255 / 96%);
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgb(23 33 38 / 24%);
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  width: 100%;
+}
+
+.floatingHeader,
+.floatingNav,
+.floatingFooter {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.floatingHeader {
+  justify-content: space-between;
+}
+
+.floatingNav,
+.floatingFooter {
+  flex-wrap: wrap;
+}
+
+.libraryButton {
+  align-items: center;
+  background: #f6f7f4;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  color: #172126;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+@media (max-width: 720px) {
+  .appShell {
+    padding: 16px;
+  }
+
+  .topBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .importButton {
+    width: 100%;
+  }
+
+  .bookGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .brand h1,
+  .readerTitle h1 {
+    font-size: 1.25rem;
+  }
+
+  .readerStage {
+    padding: 10px 8px 88px;
+  }
+
+  .pageStack {
+    gap: 12px;
+  }
+
+  .floatingControls {
+    bottom: 12px;
+    right: 10px;
+    width: calc(100vw - 20px);
+  }
+}
