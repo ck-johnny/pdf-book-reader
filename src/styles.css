@@ -93,6 +93,7 @@ button:disabled {
 
 .importButton {
   border-radius: 8px;
+  cursor: pointer;
   gap: 8px;
   min-height: 44px;
   padding: 0 16px;
