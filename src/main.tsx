@@ -8,6 +8,7 @@ import {
   Library,
   Maximize2,
   Menu,
+  Pencil,
   Search,
   Trash2,
   Upload,
@@ -40,7 +41,6 @@ const DB_NAME = "pdf-book-reader";
 const STORE_NAME = "books";
 const DB_VERSION = 1;
 const DEFAULT_WIDTH = 820;
-const LONG_PRESS_MS = 650;
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -156,11 +156,10 @@ function App() {
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [isImporting, setIsImporting] = useState(false);
-  const [detailsBook, setDetailsBook] = useState<BookSummary | null>(null);
+  const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<BookSummary | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const longPressTimerRef = useRef<number | null>(null);
-  const longPressTriggeredRef = useRef(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [pathDraft, setPathDraft] = useState("");
 
   const refreshBooks = useCallback(async () => {
     setBooks(await getAllBooks());
@@ -169,6 +168,11 @@ function App() {
   useEffect(() => {
     void refreshBooks();
   }, [refreshBooks]);
+
+  const editingBook = useMemo(
+    () => books.find((book) => book.id === editingBookId) ?? null,
+    [books, editingBookId],
+  );
 
   const handleFiles = useCallback(
     async (files: FileList | null) => {
@@ -182,7 +186,10 @@ function App() {
 
           const id = bookId(file);
           const existing = await getBook(id);
-          const sourcePath = "webkitRelativePath" in file && file.webkitRelativePath ? file.webkitRelativePath : file.name;
+          const sourcePath =
+            "webkitRelativePath" in file && file.webkitRelativePath
+              ? file.webkitRelativePath
+              : file.name;
           const data = await file.arrayBuffer();
           const loadingTask = pdfjsLib.getDocument({ data: data.slice(0) });
           const pdf = await loadingTask.promise;
@@ -222,52 +229,36 @@ function App() {
     });
   }, [books, query]);
 
-  const clearLongPress = useCallback(() => {
-    if (longPressTimerRef.current) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
+  const openEditor = useCallback((book: BookSummary) => {
+    setEditingBookId(book.id);
+    setNameDraft(bookTitle(book));
+    setPathDraft(bookPath(book));
   }, []);
 
-  const startLongPress = useCallback(
-    (callback: () => void) => {
-      clearLongPress();
-      longPressTriggeredRef.current = false;
-      longPressTimerRef.current = window.setTimeout(() => {
-        longPressTriggeredRef.current = true;
-        callback();
-      }, LONG_PRESS_MS);
-    },
-    [clearLongPress],
-  );
-
-  const openDetails = useCallback((book: BookSummary) => {
-    setDetailsBook(book);
-    setRenameValue(bookTitle(book));
+  const closeEditor = useCallback(() => {
+    setEditingBookId(null);
+    setNameDraft("");
+    setPathDraft("");
   }, []);
 
-  const closeDetails = useCallback(() => {
-    setDetailsBook(null);
-    setRenameValue("");
-  }, []);
-
-  const handleRename = useCallback(async () => {
-    if (!detailsBook) return;
-    const nextName = renameValue.trim() || detailsBook.name;
-    await updateBook(detailsBook.id, { displayName: nextName });
+  const handleSaveEdits = useCallback(async () => {
+    if (!editingBook) return;
+    const nextName = nameDraft.trim() || editingBook.name;
+    const nextPath = pathDraft.trim() || editingBook.name;
+    await updateBook(editingBook.id, { displayName: nextName, sourcePath: nextPath });
     await refreshBooks();
-    closeDetails();
-  }, [closeDetails, detailsBook, refreshBooks, renameValue]);
+    closeEditor();
+  }, [closeEditor, editingBook, nameDraft, pathDraft, refreshBooks]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteCandidate) return;
     await deleteBook(deleteCandidate.id);
     setDeleteCandidate(null);
-    if (detailsBook?.id === deleteCandidate.id) {
-      closeDetails();
+    if (editingBookId === deleteCandidate.id) {
+      closeEditor();
     }
     await refreshBooks();
-  }, [closeDetails, deleteCandidate, detailsBook, refreshBooks]);
+  }, [closeEditor, deleteCandidate, editingBookId, refreshBooks]);
 
   if (activeBookId) {
     return (
@@ -322,23 +313,21 @@ function App() {
               <button
                 className="bookOpenArea"
                 type="button"
-                title="Long press for details"
-                onPointerDown={() => startLongPress(() => openDetails(book))}
-                onPointerUp={clearLongPress}
-                onPointerLeave={clearLongPress}
-                onPointerCancel={clearLongPress}
-                onClick={() => {
-                  if (longPressTriggeredRef.current) {
-                    longPressTriggeredRef.current = false;
-                    return;
-                  }
-                  setActiveBookId(book.id);
-                }}
+                onClick={() => setActiveBookId(book.id)}
               >
                 <span className="bookName">{bookTitle(book)}</span>
                 <span className="bookPath">{bookPath(book)}</span>
                 <span className="bookProgress">{progressText(book)}</span>
                 <span className="bookMeta">Last read {formatDate(book.updatedAt)}</span>
+              </button>
+              <button
+                className="bookEditButton"
+                type="button"
+                aria-label={`Edit ${bookTitle(book)}`}
+                title="Edit"
+                onClick={() => openEditor(book)}
+              >
+                <Pencil aria-hidden="true" size={18} />
               </button>
             </article>
           ))}
@@ -351,48 +340,75 @@ function App() {
         </section>
       )}
 
-      {detailsBook ? (
-        <div className="modalBackdrop" role="presentation" onClick={closeDetails}>
-          <section className="modalPanel" role="dialog" aria-modal="true" aria-label="Book details" onClick={(event) => event.stopPropagation()}>
+      {editingBook ? (
+        <div className="modalBackdrop" role="presentation" onClick={closeEditor}>
+          <section
+            className="modalPanel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Book details"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modalHeader">
-              <h2>Book Details</h2>
-              <button className="iconButton" type="button" onClick={closeDetails} aria-label="Close details" title="Close">
+              <h2>Edit Book</h2>
+              <button
+                className="iconButton"
+                type="button"
+                onClick={closeEditor}
+                aria-label="Close edit"
+                title="Close"
+              >
                 <X aria-hidden="true" size={20} />
               </button>
             </div>
-            <label className="renameField">
+            <label className="editField">
               <span>Name</span>
-              <input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
+              <input
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                autoFocus
+              />
+            </label>
+            <label className="editField">
+              <span>Path / note</span>
+              <input
+                value={pathDraft}
+                onChange={(event) => setPathDraft(event.target.value)}
+                placeholder="Optional reference path or note"
+              />
+              <small className="hint">
+                Browsers don't expose the full local path; edit this freely to add your own reference.
+              </small>
             </label>
             <dl className="detailsList">
               <div>
-                <dt>Path</dt>
-                <dd>{bookPath(detailsBook)}</dd>
-              </div>
-              <div>
                 <dt>Original file</dt>
-                <dd>{detailsBook.name}</dd>
+                <dd>{editingBook.name}</dd>
               </div>
               <div>
                 <dt>Progress</dt>
-                <dd>{progressText(detailsBook)}</dd>
+                <dd>{progressText(editingBook)}</dd>
               </div>
               <div>
                 <dt>Size</dt>
-                <dd>{formatFileSize(detailsBook.size)}</dd>
+                <dd>{formatFileSize(editingBook.size)}</dd>
               </div>
               <div>
                 <dt>Added</dt>
-                <dd>{formatDate(detailsBook.addedAt)}</dd>
+                <dd>{formatDate(editingBook.addedAt)}</dd>
               </div>
             </dl>
             <div className="modalActions">
-              <button className="secondaryButton" type="button" onClick={() => setDeleteCandidate(detailsBook)}>
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={() => setDeleteCandidate(editingBook)}
+              >
                 <Trash2 aria-hidden="true" size={18} />
                 <span>Delete</span>
               </button>
-              <button className="primaryButton" type="button" onClick={() => void handleRename()}>
-                Save Name
+              <button className="primaryButton" type="button" onClick={() => void handleSaveEdits()}>
+                Save
               </button>
             </div>
           </section>
@@ -401,11 +417,21 @@ function App() {
 
       {deleteCandidate ? (
         <div className="modalBackdrop" role="presentation" onClick={() => setDeleteCandidate(null)}>
-          <section className="confirmPanel" role="alertdialog" aria-modal="true" aria-label="Confirm delete" onClick={(event) => event.stopPropagation()}>
+          <section
+            className="confirmPanel"
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Confirm delete"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h2>Remove Book?</h2>
             <p>{bookTitle(deleteCandidate)}</p>
             <div className="modalActions">
-              <button className="secondaryButton" type="button" onClick={() => setDeleteCandidate(null)}>
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={() => setDeleteCandidate(null)}
+              >
                 Cancel
               </button>
               <button className="dangerButton" type="button" onClick={() => void handleDelete()}>
@@ -553,7 +579,23 @@ function Reader({ bookId, onBack }: { bookId: string; onBack: () => void }) {
 
   return (
     <main className="readerShell">
-      <section className="readerStage" ref={readerRef} onScroll={handleStageScroll} aria-label="PDF pages">
+      <button
+        className="readerBackButton"
+        type="button"
+        onClick={onBack}
+        aria-label="Back to library"
+        title="Back to library"
+      >
+        <ArrowLeft aria-hidden="true" size={20} />
+        <span>Library</span>
+      </button>
+
+      <section
+        className={`readerStage ${fitWidth ? "fit" : "free"}`}
+        ref={readerRef}
+        onScroll={handleStageScroll}
+        aria-label="PDF pages"
+      >
         {status ? <p className="renderStatus">{status}</p> : null}
         <div className="pageStack">
           {pdf
@@ -584,7 +626,7 @@ function Reader({ bookId, onBack }: { bookId: string; onBack: () => void }) {
           <div className="floatingPanel" aria-label="Reader controls">
             <div className="floatingHeader">
               <div className="readerTitle">
-                <h1>{bookTitle(book)}</h1>
+                <h1 title={bookTitle(book)}>{bookTitle(book)}</h1>
                 <p>
                   Page {page} of {totalPages} ({percent}%)
                 </p>
@@ -638,7 +680,7 @@ function Reader({ bookId, onBack }: { bookId: string; onBack: () => void }) {
               </button>
             </div>
 
-            <label className="widthControl">
+            <label className={`widthControl ${fitWidth ? "disabled" : ""}`}>
               <Maximize2 aria-hidden="true" size={18} />
               <span>Width</span>
               <input
@@ -647,6 +689,7 @@ function Reader({ bookId, onBack }: { bookId: string; onBack: () => void }) {
                 max={1400}
                 step={20}
                 value={width}
+                disabled={fitWidth}
                 onChange={(event) => {
                   setWidth(Number(event.target.value));
                 }}
@@ -656,13 +699,13 @@ function Reader({ bookId, onBack }: { bookId: string; onBack: () => void }) {
 
             <div className="floatingFooter">
               <label className="toggleControl">
-                <input type="checkbox" checked={fitWidth} onChange={(event) => setFitWidth(event.target.checked)} />
-                <span>Fit screen</span>
+                <input
+                  type="checkbox"
+                  checked={fitWidth}
+                  onChange={(event) => setFitWidth(event.target.checked)}
+                />
+                <span>Fit to screen width</span>
               </label>
-              <button className="libraryButton" type="button" onClick={onBack}>
-                <ArrowLeft aria-hidden="true" size={18} />
-                <span>Library</span>
-              </button>
             </div>
           </div>
         ) : null}
@@ -707,9 +750,10 @@ function PageCanvas({
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [shouldRender, setShouldRender] = useState(false);
 
-  const availableWidth = Math.max(320, stageWidth - 28);
-  const targetWidth = fitWidth ? Math.min(availableWidth, width) : width;
-  const placeholderHeight = Math.floor(targetWidth * (aspectRatio ?? DEFAULT_ASPECT_RATIO));
+  const availableWidth = Math.max(280, stageWidth - 28);
+  const targetWidth = Math.floor(fitWidth ? availableWidth : width);
+  const effectiveAspect = aspectRatio ?? DEFAULT_ASPECT_RATIO;
+  const targetHeight = Math.floor(targetWidth * effectiveAspect);
 
   useEffect(() => {
     const node = containerRef.current;
@@ -750,8 +794,6 @@ function PageCanvas({
 
         canvas.width = Math.floor(viewport.width * pixelRatio);
         canvas.height = Math.floor(viewport.height * pixelRatio);
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
 
         context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
         context.clearRect(0, 0, viewport.width, viewport.height);
@@ -775,10 +817,23 @@ function PageCanvas({
   }, [shouldRender, onRendered, pageNumber, pdf, targetWidth]);
 
   return (
-    <div ref={containerRef} style={{ minHeight: `${placeholderHeight}px`, width: `${targetWidth}px` }}>
+    <div
+      ref={containerRef}
+      className="pageFrame"
+      style={{ width: `${targetWidth}px`, height: `${targetHeight}px` }}
+    >
       <canvas ref={canvasRef} />
     </div>
   );
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+  window.addEventListener("load", () => {
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+    navigator.serviceWorker.register(swUrl).catch((err) => {
+      console.warn("Service worker registration failed", err);
+    });
+  });
+}

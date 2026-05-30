@@ -57,25 +57,35 @@ button:disabled {
   min-width: 0;
 }
 
-.brand h1,
-.readerTitle h1 {
+.brand h1 {
   font-size: clamp(1.25rem, 3vw, 2rem);
   line-height: 1.1;
   margin: 0;
 }
 
-.brand p,
-.readerTitle p {
+.brand p {
   color: #607077;
   margin: 4px 0 0;
 }
 
 .readerTitle {
   display: block;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .readerTitle h1 {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readerTitle p {
+  color: #607077;
+  margin: 4px 0 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -147,7 +157,6 @@ button:disabled {
 }
 
 .bookCard {
-  align-items: stretch;
   background: #fff;
   border: 1px solid #d8dfdc;
   border-radius: 8px;
@@ -155,6 +164,7 @@ button:disabled {
   gap: 8px;
   min-height: 162px;
   padding: 14px;
+  position: relative;
 }
 
 .bookOpenArea {
@@ -168,7 +178,29 @@ button:disabled {
   gap: 9px;
   min-width: 0;
   padding: 0;
+  padding-right: 42px;
   text-align: left;
+}
+
+.bookEditButton {
+  align-items: center;
+  background: #f6f7f4;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  color: #425258;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 36px;
+}
+
+.bookEditButton:hover,
+.bookEditButton:focus-visible {
+  background: #eef2ec;
+  color: #163b3f;
 }
 
 .bookName {
@@ -184,12 +216,14 @@ button:disabled {
 
 .bookPath {
   color: #607077;
+  display: -webkit-box;
   font-size: 0.88rem;
   line-height: 1.3;
   max-width: 100%;
   overflow: hidden;
   overflow-wrap: anywhere;
-  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .bookProgress {
@@ -269,13 +303,14 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.renameField {
+.editField {
   color: #425258;
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
-.renameField input {
+.editField input {
   border: 1px solid #ccd6d2;
   border-radius: 8px;
   color: #172126;
@@ -283,6 +318,11 @@ button:disabled {
   min-width: 0;
   padding: 0 11px;
   width: 100%;
+}
+
+.editField .hint {
+  color: #8a979d;
+  font-size: 0.78rem;
 }
 
 .detailsList {
@@ -352,6 +392,29 @@ button:disabled {
   position: relative;
 }
 
+.readerBackButton {
+  align-items: center;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #d8dfdc;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgb(23 33 38 / 14%);
+  color: #163b3f;
+  display: inline-flex;
+  font-weight: 600;
+  gap: 6px;
+  height: 40px;
+  left: 12px;
+  padding: 0 14px 0 10px;
+  position: fixed;
+  top: 12px;
+  z-index: 15;
+}
+
+.readerBackButton:hover,
+.readerBackButton:focus-visible {
+  background: #fff;
+}
+
 .pageInput,
 .widthControl,
 .toggleControl {
@@ -375,9 +438,14 @@ button:disabled {
   width: 100%;
 }
 
+.widthControl.disabled {
+  opacity: 0.55;
+}
+
 .widthControl input {
   accent-color: #163b3f;
   flex: 1;
+  min-width: 0;
 }
 
 .widthControl strong {
@@ -398,13 +466,16 @@ button:disabled {
 }
 
 .readerStage {
-  display: flex;
-  justify-content: center;
+  display: block;
   height: 100vh;
   overflow: auto;
-  padding: 18px 14px 92px;
+  padding: 60px 14px 92px;
   position: relative;
   scroll-behavior: smooth;
+}
+
+.readerStage.free {
+  overflow: auto;
 }
 
 .pageStack {
@@ -412,22 +483,34 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: 100%;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 100%;
+}
+
+.readerStage.free .pageStack {
+  max-width: none;
 }
 
 .pdfPage {
   display: flex;
   justify-content: center;
-  min-height: 180px;
-  scroll-margin-top: 18px;
-  width: 100%;
+  scroll-margin-top: 60px;
 }
 
-.pdfPage canvas {
+.pageFrame {
   background: #fff;
   box-shadow: 0 12px 34px rgb(23 33 38 / 18%);
   display: block;
-  max-width: 100%;
+  flex: 0 0 auto;
+  overflow: hidden;
+  position: relative;
+}
+
+.pageFrame canvas {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 .renderStatus {
@@ -438,7 +521,7 @@ button:disabled {
   margin: 0;
   padding: 10px 12px;
   position: absolute;
-  top: 20px;
+  top: 60px;
   transform: translateX(-50%);
   z-index: 5;
 }
@@ -481,6 +564,7 @@ button:disabled {
   box-shadow: 0 18px 48px rgb(23 33 38 / 24%);
   display: grid;
   gap: 14px;
+  min-width: 0;
   padding: 14px;
   width: 100%;
 }
@@ -491,6 +575,7 @@ button:disabled {
   align-items: center;
   display: flex;
   gap: 10px;
+  min-width: 0;
 }
 
 .floatingHeader {
@@ -500,18 +585,6 @@ button:disabled {
 .floatingNav,
 .floatingFooter {
   flex-wrap: wrap;
-}
-
-.libraryButton {
-  align-items: center;
-  background: #f6f7f4;
-  border: 1px solid #d8dfdc;
-  border-radius: 8px;
-  color: #172126;
-  display: inline-flex;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 12px;
 }
 
 @media (max-width: 720px) {
@@ -532,13 +605,12 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .brand h1,
-  .readerTitle h1 {
+  .brand h1 {
     font-size: 1.25rem;
   }
 
   .readerStage {
-    padding: 10px 8px 88px;
+    padding: 56px 8px 88px;
   }
 
   .pageStack {
